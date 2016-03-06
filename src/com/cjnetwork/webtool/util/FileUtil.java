@@ -1,0 +1,294 @@
+package com.cjnetwork.webtool.util;
+
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.InputStreamReader;
+import java.util.ArrayList;
+import java.util.List;
+
+public class FileUtil {
+
+	/**
+	 * 
+	 * ��ȡ�ļ���չ����.�ŷָ
+	 * 
+	 * YanHuan 2010-12-7����02:01:55
+	 * 
+	 * @param f
+	 * @return
+	 */
+	static String getExt(File f) {
+		String result = "";
+		result = f.getName();
+		result = getExt(result);
+		return result;
+	}
+
+	/**
+	 * 
+	 * ��ȡ�ļ���չ����.�ŷָ
+	 * 
+	 * YanHuan 2010-12-7����02:01:55
+	 * 
+	 * @param f
+	 * @return
+	 */
+	static String getExt(String fileFullName) {
+		String result = fileFullName;
+		if (result.lastIndexOf(".") != -1) {
+			result = result.substring(result.lastIndexOf(".") + 1);
+		} else {
+		}
+		return result;
+	}
+
+	/**
+	 * 
+	 * ��ȡ�ļ�������չ��
+	 * 
+	 * YanHuan 2010-12-7����02:01:39
+	 * 
+	 * @param f
+	 * @return
+	 */
+	static String getNameWithoutExt(File f) {
+		String result = "";
+		result = f.getName();
+		result = getNameWithoutExt(result);
+
+		return result;
+	}
+	
+	/**
+	 * 
+	 * ��ȡԴĿ¼�е���չ��Ϊextension�������ļ�
+	 * 
+	 * YanHuan 2010-12-9����05:36:30
+	 * @param sourceFolder
+	 * @param extension
+	 * @return
+	 */
+	public static List<File> getAllFileWithExt(String sourceFolder, String extension) {
+		List<File> result = new ArrayList<File>();
+		File root = new File(sourceFolder);
+		File[] files = root.listFiles();
+		for(int i = 0; i < files.length; i++){
+			File tmpFile = files[i];
+			if(tmpFile.getPath().lastIndexOf(".") != -1){
+				if(getExt(tmpFile.getPath()).toLowerCase().equals("extension")){
+					result.add(tmpFile);
+				}
+			}
+			if(tmpFile.isDirectory()){
+				result.addAll(getAllFileWithExt(tmpFile.getPath(), extension));
+			}
+		}
+		return result;
+	}
+
+	/**
+	 * 
+	 * ��ȡ�ļ�������չ��
+	 * 
+	 * YanHuan 2010-12-7����02:01:39
+	 * 
+	 * @param f
+	 * @return
+	 */
+	static String getNameWithoutExt(String fileFullName) {
+		String result = "";
+		result = getName(fileFullName);
+		if (result.lastIndexOf(".") != -1) {
+			result = result.substring(0, result.lastIndexOf("."));
+		}
+		return result;
+	}
+
+	/**
+	 * 
+	 * �����ļ���
+	 * 
+	 * YanHuan 2010-12-9����01:15:14
+	 * 
+	 * @param fileFullName
+	 * @return
+	 */
+	public static String getName(String fileFullName) {
+		String result = "";
+		result = fileFullName;
+		if (result.lastIndexOf(File.separator) != -1) {
+			result = result.substring(result.lastIndexOf(File.separator) + 1);
+		} else {
+			if (result.lastIndexOf("/") != -1) {
+				result = result.substring(result.lastIndexOf("/") + 1);
+			}
+		}
+		return result;
+	}
+
+	/**
+	 * 
+	 * �����ļ���
+	 * 
+	 * YanHuan 2010-12-9����01:15:14
+	 * 
+	 * @param fileFullName
+	 * @return
+	 */
+	public static String getName(File f) {
+		String result = f.getPath();
+		result = getName(result);
+		return result;
+	}
+
+	/**
+	 * 
+	 * ��ȡ�ļ�·��
+	 * 
+	 * YanHuan 2010-12-7����02:01:23
+	 * 
+	 * @param f
+	 * @return
+	 */
+	static String getPath(File f) {
+		String result = "";
+		result = f.getPath();
+		result = getPath(result);
+		return result;
+	}
+
+	/**
+	 * 
+	 * ��ȡ�ļ�·��
+	 * 
+	 * YanHuan 2010-12-7����02:01:23
+	 * 
+	 * @param f
+	 * @return
+	 */
+	static String getPath(String fileFullName) {
+		String result = "";
+		result = fileFullName;
+		if (result.lastIndexOf(File.separator) != -1) {
+			result = result.substring(0, result.lastIndexOf(File.separator));
+		} else {
+			if (result.lastIndexOf("/") != -1) {
+				result = result.substring(0, result.lastIndexOf("/"));
+			}
+		}
+		return result;
+	}
+	
+	/**
+	 * 文件复制
+	 * YanHuan 2011-1-2上午11:11:50
+	 */
+	public static boolean copy(String resource, String target){
+		boolean result = false;
+		File res = new File(resource);
+		File tar = new File(target);
+		result = copy(res,tar);
+		return result;
+	}
+
+	/**
+	 * 文件复制
+	 * YanHuan 2011-1-2上午11:12:00
+	 */
+	public static boolean copy(File res, File tar) {
+		boolean result = false;
+		try{
+			BufferedInputStream bis = new BufferedInputStream(new FileInputStream(res));
+			BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(tar));
+			byte[] data = new byte[2 * 1024];
+			
+			int len = 0;
+			while((len = bis.read(data)) != -1){
+				bos.write(data, 0, len);
+			}
+			bis.close();
+			bos.close();
+			result = true;
+		}catch (Exception e) {
+			e.printStackTrace();
+		}
+		return result;
+	}
+	
+	/**
+	 * 删除文件夹
+	 * YanHuan 2011-1-2上午10:34:50
+	 */
+	public static void deleteFolder(String path){
+		File root = new File(path);
+		File[] files = root.listFiles();
+		for(int i = 0; i < files.length; i++){
+			File tmpFile = files[i];
+			if(tmpFile.isDirectory()){
+				deleteFolder(tmpFile.getPath());
+			}else{
+				tmpFile.delete();
+			}
+		}
+		root.delete();
+	}
+	
+	
+	public static void copyFolder(String resource, String target){
+		File resourceFolder = new File(resource);
+		String resourceFolderName = resourceFolder.getPath();
+		resourceFolderName = resourceFolderName.substring(resourceFolderName.lastIndexOf(File.separator) + 1);
+		File targetFolder = new File(target + File.separator + resourceFolderName);
+		if(!targetFolder.exists()){
+			targetFolder.mkdirs();
+		}
+		
+		File[] files = resourceFolder.listFiles();
+		if(files==null){
+			System.out.print("0825");
+		}
+		else{
+		for(int i = 0; i < files.length; i++){
+			File tmpFile = files[i];
+			if(tmpFile.isDirectory()){
+				String tmpTargetFileName = targetFolder.getPath();
+				copyFolder(tmpFile.getPath(), tmpTargetFileName);
+			}else{
+				String tmpTargetFileName = targetFolder.getPath() + File.separator + getName(tmpFile);
+				copy(tmpFile.getPath(), tmpTargetFileName);
+			}
+		}
+		}
+	}
+	
+	/**
+	 * 读取并替换文件中的键值对
+	 * YanHuan 2011-1-3上午02:37:47
+	 */
+	public static void readAndReplaceWithProperties(String resourceFile, String targetFile) throws Exception{
+
+		resourceFile=Class.class.getClass().getResource("/").getPath()+resourceFile;
+		File target = new File(targetFile);
+		if(!new File(target.getParent()).exists()){
+			new File(target.getParent()).mkdirs();
+		}
+		
+		StringBuilder sb = new StringBuilder();
+		BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(resourceFile)));
+		
+		String line;
+		while((line = br.readLine()) != null){
+			sb.append(line + "\n");
+		}
+		
+		String content = PropertyUtil.replaceWithProperties(sb.toString());
+		BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(target));
+		bos.write(content.getBytes());
+		bos.close();
+	}
+	
+}
