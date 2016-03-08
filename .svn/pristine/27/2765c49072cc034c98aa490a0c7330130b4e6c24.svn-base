@@ -14,7 +14,9 @@ import com.cjnetwork.webtool.util.NamingUtil;
 import com.cjnetwork.webtool.util.PropertyUtil;
 
 public class DaoGenerator implements Generator {
+
 	StringBuilder implSb;
+
 	// private
 	@Override
 	public boolean generate() {
@@ -32,14 +34,17 @@ public class DaoGenerator implements Generator {
 		}
 		return result;
 	}
+
 	private void generateBaseDao() {
 		String res = "resource/SqlHelper.java";
 		String tar = PropertyUtil.getProperty("daoFileFolder") + File.separator + "SqlHelper.java";
 		Globel.fileCopyPool.put(res, tar);
 	}
+
 	/**
 	 * 生成dao接口 YanHuan 2011-1-2下午05:01:26
 	 */
+
 	private void generate(String tableName, List<Entry<String, String>> colums) throws Exception {
 		implSb = new StringBuilder();
 
@@ -74,44 +79,7 @@ public class DaoGenerator implements Generator {
 
 		implSb.append("     }\n\n\n");
 		// + COLUMNS.username + ","+ COLUMNS.ID
-//---
-		implSb.append("     public SparseArray<"+ NamingUtil.getClassName(tableName)+"> queryBySql(String sql, String []whereArgs){\n");
 
-		implSb.append("     Cursor cursor=null;\n");
-		implSb.append("     int index=0;\n");
-		implSb.append("     try{\n");
-		implSb.append("       synchronized(SYNC){\n");
-		implSb.append("      if ( (cursor =  mOpenHelper.getReadableDatabase().rawQuery(sql, whereArgs))==null || cursor.getCount()<1)return null;\n");
-		implSb.append("     SparseArray<" + NamingUtil.getClassName(tableName) + "> list = new SparseArray<"
-				+ NamingUtil.getClassName(tableName) + ">(cursor.getCount());\n");
-		implSb.append("      while (cursor.moveToNext()){\n");
-
-		implSb.append("      " + NamingUtil.getClassName(tableName) + " entity=new " + NamingUtil.getClassName(tableName)
-				+ "(); \n");
-
-		for (int i = 0; i < colums.size(); i++) {
-			Entry<String, String> entry = colums.get(i);
-
-			String columnName = NamingUtil.getInstanceName(entry.getKey());
-			if (entry.getValue().startsWith("Int")) {
-
-				implSb.append("    entity." + columnName + "=cursor.isNull(COLUMNINDEXS." + columnName
-						+ " )? -1 :cursor.getInt(COLUMNINDEXS." + columnName + ");\n");
-			} else if (entry.getValue().startsWith("String")) {
-				implSb.append("    entity." + columnName + "=cursor.isNull(COLUMNINDEXS." + columnName
-						+ " )? \"\" :cursor.getString(COLUMNINDEXS." + columnName + ");\n");
-			}
-		}
-		implSb.append("       list.append(index++,entity);\n");
-		implSb.append("       }; \n");
-
-		implSb.append("      cursor.close(); \n");
-		implSb.append("      return list; \n");
-
-		implSb.append("      } \n");
-		implSb.append("      }catch(Exception ex){ \n  ex.printStackTrace();");
-		implSb.append("       }finally{ \n if (cursor!= null) cursor.close();\n    }   return null;\n }\n");
-		//------------
 		implSb.append("     public SparseArray<"+ NamingUtil.getClassName(tableName)+"> queryToList(String whereClause, String []whereArgs){\n");
 
 		implSb.append("     Cursor cursor=null;\n");
@@ -148,20 +116,14 @@ public class DaoGenerator implements Generator {
 		implSb.append("      } \n");
 		implSb.append("      }catch(Exception ex){ \n  ex.printStackTrace();");
 		implSb.append("       }finally{ \n if (cursor!= null) cursor.close();\n    }   return null;\n }");
+
 		modifytable(tableName, 0);
 		// 批量更新
 		modifytable(tableName, 1);
 		modifytable(tableName, 2);// 参数查找
-		implSb.append("		public int getUpgrade( SQLiteDatabase db ){\n");
-		implSb.append("	    int strid = 0;\n");
-				implSb.append("	    Cursor cursor = db.rawQuery(\"select last_insert_rowid() from " + tableName+"\", null);\n");
-						implSb.append("	    if (cursor.moveToFirst())\n");
-								implSb.append("	        strid = cursor.getInt(0);\n");
-										implSb.append("	    cursor.close();\n");
-												implSb.append("	    return strid+1;\n");
-														implSb.append("	}\n");
 		genColumns(colums, 1);
 		genColumns(colums, 2);
+
 		// insert0
 		implSb.append("       private int insert0(SQLiteDatabase db, " + NamingUtil.getClassName(tableName)
 				+ " entity){ \n");
@@ -305,18 +267,16 @@ public class DaoGenerator implements Generator {
 		// 新增
 		if (type == 0) {
 			implSb.append("       public int insert(" + NamingUtil.getClassName(tableName) + " entity){\n ");
-			implSb.append("        SQLiteDatabase db=mOpenHelper.getWritableDatabase();\n ");
+			implSb.append("        SQLiteDatabase db=null;\n ");
 			implSb.append("         try{\n ");
-			implSb.append("         entity.upgradeFlag=getUpgrade(db);\n ");
-			implSb.append("         return insert0(db, entity);\n ");
+			implSb.append("         return insert0(db=mOpenHelper.getWritableDatabase(), entity);\n ");
 		}
 		// 编辑
 		if (type == 1) {
 			implSb.append("       public boolean update(" + NamingUtil.getClassName(tableName) + " entity){\n ");
-			implSb.append("        SQLiteDatabase db=mOpenHelper.getWritableDatabase();\n ");
+			implSb.append("        SQLiteDatabase db=null;\n ");
 			implSb.append("         try{\n ");
-			implSb.append("         entity.upgradeFlag=getUpgrade(db);\n ");
-			implSb.append("         return update0(db, entity, COLUMNS." + pk
+			implSb.append("         return update0(db=mOpenHelper.getWritableDatabase(), entity, COLUMNS." + pk
 					+ "+\"=?\", new String[]{String.valueOf(entity." + pk + ")} );\n ");
 
 		}

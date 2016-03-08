@@ -8,6 +8,7 @@ import com.cjnetwork.webtool.util.FileUtil;
 
 
 public class FileCopyGenerator implements Generator{
+
 	@Override
 	public boolean generate() {
 		boolean result = false;
@@ -23,4 +24,5 @@ public class FileCopyGenerator implements Generator{
 		}
 		return result;
 	}
+
 }

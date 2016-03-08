@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+  - Application context definition for JPetStore's business layer.
+  - Contains bean references to the transaction manager and to the DAOs in
+  - dataAccessContext-local/jta.xml (see web.xml's "contextConfigLocation").
+  -->
+<beans xmlns="http://www.springframework.org/schema/beans"
+	     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	     xmlns:aop="http://www.springframework.org/schema/aop"
+	     xmlns:tx="http://www.springframework.org/schema/tx"
+	     xmlns:context="http://www.springframework.org/schema/context"
+	     xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-2.5.xsd
+           					 http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-2.5.xsd
+           					 http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-2.5.xsd
+           					 http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-2.5.xsd">
+     <context:component-scan base-package="@@packagePrefix" />
+     
+	<bean id="dataSource" class="org.springframework.jdbc.datasource.DriverManagerDataSource">
+		<property name="driverClassName" value="@@database_driver" />
+		<property name="url" value="@@database_url" />
+		<property name="username" value="@@database_user" />
+		<property name="password" value="@@database_password" />
+	</bean>
+	
+	<!-- 配置得到 SessionFactory -->
+	<bean id="sessionFactory" class="org.springframework.orm.hibernate3.annotation.AnnotationSessionFactoryBean">
+		<property name="dataSource" ref="dataSource" />
+		<property name="packagesToScan" value="@@hibernate_model"/>
+		<property name="hibernateProperties">
+	    	<props>
+	  	<!--  	<prop key="hibernate.hbm2ddl.auto">update</prop>  -->
+	    		<prop key="hibernate.show_sql">true</prop>
+	    		<prop key="hibernate.format_sql">true</prop>
+	    		<prop key="hibernate.dialect">@@database_dialect</prop>
+	    		<prop key="hibernate.c3p0.min_size">20</prop>
+	    		<prop key="hibernate.c3p0.max_size">50</prop>
+	    		<prop key="hibernate.c3p0.timeout">120</prop>
+	    		<prop key="hibernate.c3p0.max_statements">100</prop>
+	    		<prop key="hibernate.c3p0.idle_test_period">120</prop>
+	    		<prop key="hibernate.c3p0.acquire_increment">2</prop>
+	    	</props>
+	    </property>
+	</bean>
+    <bean id="baseDao" class="@@daoPackage.dao.BaseDao">
+		<property name="sessionFactory" ref="sessionFactory" />
+	</bean>
+	 <!-- 配置spring的事务 -->
+	<bean id="transactionManager" class="org.springframework.orm.hibernate3.HibernateTransactionManager">
+		<property name="sessionFactory" ref="sessionFactory"/>
+	</bean>
+	
+   <!-- 配置AOP -->
+	<aop:config>
+		<aop:advisor pointcut="execution(* @@txPackage.*.*(..))" advice-ref="txAdvice"/>
+	</aop:config>
+	<tx:advice id="txAdvice" transaction-manager="transactionManager">
+		<tx:attributes>
+			<tx:method name="add*"/>
+			<tx:method name="delete*"/>
+			<tx:method name="update*"/>
+			<tx:method name="find*"/>
+			<tx:method name="list*"/>
+		</tx:attributes>
+	</tx:advice>
+</beans>
