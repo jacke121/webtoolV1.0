@@ -186,7 +186,7 @@ public class ModelGenerator implements Generator {
 					columType = "String";
 				}
 
-				else if (rs.getString("type").toLowerCase().equals("decimal")) {
+				else if (rs.getString("type").toLowerCase().startsWith("decimal")) {
 					columType = "BigDecimal";
 				}
 
@@ -198,9 +198,9 @@ public class ModelGenerator implements Generator {
 					columType = "BigDecimal";
 				} else if (rs.getString("type").toUpperCase().startsWith("NVARCHAR")) {
 					columType = "String";
-				}
-
-				else if (rs.getString("type").toUpperCase().startsWith("NVARCHAR")
+				}else if (rs.getString("type").toLowerCase().equals("float")) {
+					columType = "float";
+				}else if (rs.getString("type").toUpperCase().startsWith("NVARCHAR")
 						|| rs.getString("type").toUpperCase().startsWith("VARCHAR")) {
 					columType = "String";
 				} else if (rs.getString("type").toUpperCase().startsWith("SMALLINT")) {

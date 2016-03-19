@@ -14,12 +14,13 @@ public class Launch {
 
 	public static Connection con;
 
+
 	public static void main(String[] args) {
 		try {
 			ConfigUtil.initTargetFolder("sqlite");
 			Class.forName("org.sqlite.JDBC");
 			Launch.con = DriverManager
-					.getConnection("jdbc:sqlite:D:/project/android/androidTower/tagan.db");
+					.getConnection("jdbc:sqlite:D:/project/android/androidTower/lbstock.db");
 			// Launch.con =
 			// DriverManager.getConnection("jdbc:sqlite:D:/project/android/androidTower/gantadb.db");
 			Launch.con.setAutoCommit(false);
