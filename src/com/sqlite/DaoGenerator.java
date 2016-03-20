@@ -307,6 +307,7 @@ public class DaoGenerator implements Generator {
 			implSb.append("       public int insert(" + NamingUtil.getClassName(tableName) + " entity){\n ");
 			implSb.append("        SQLiteDatabase db=mOpenHelper.getWritableDatabase();\n ");
 			implSb.append("         try{\n ");
+			implSb.append("         entity.lifeStatus=1;\n ");
 			implSb.append("         entity.upgradeFlag=getUpgrade(db);\n ");
 			implSb.append("         return insert0(db, entity);\n ");
 		}
