@@ -323,6 +323,19 @@ public class DaoGenerator implements Generator {
 		}
 		// 删除
 		if (type == 2) {
+			
+			//清空表
+			implSb.append("         public boolean clearData(SQLiteDatabase db) {\n ");
+			implSb.append("                 try {\n ");
+			implSb.append("                     db.execSQL(\"delete from "+tableName+"\");\n ");
+			implSb.append("                     return true;\n ");
+			implSb.append("                 } catch (Exception e) {\n ");
+			implSb.append("                     e.printStackTrace();\n ");
+			implSb.append("                     return false;\n ");
+			implSb.append("                 }\n ");
+			implSb.append("             }\n ");
+			
+			
 			implSb.append("       public boolean delete(" + NamingUtil.getClassName(tableName) + " entity){\n ");
 			implSb.append("        SQLiteDatabase db=null;\n ");
 			implSb.append("         try{\n ");
