@@ -194,12 +194,10 @@ public class ModelGenerator implements Generator {
 					columType = "String";
 				}
 
-				else if (rs.getString("type").toUpperCase().equals("NUMERIC")) {
-					columType = "BigDecimal";
+				else if (rs.getString("type").toUpperCase().startsWith("NUMERIC")) {
+					columType = "float";
 				} else if (rs.getString("type").toUpperCase().startsWith("NVARCHAR")) {
 					columType = "String";
-				}else if (rs.getString("type").toLowerCase().equals("float")) {
-					columType = "float";
 				}else if (rs.getString("type").toUpperCase().startsWith("NVARCHAR")
 						|| rs.getString("type").toUpperCase().startsWith("VARCHAR")) {
 					columType = "String";

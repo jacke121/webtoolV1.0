@@ -40,7 +40,7 @@ public class DaoGenerator implements Generator {
 	/**
 	 * 生成dao接口 YanHuan 2011-1-2下午05:01:26
 	 */
-	private void generate(String tableName, List<Entry<String, String>> colums) throws Exception {
+	private void generate(String tableName, List<Entry<String, String>> columns) throws Exception {
 		implSb = new StringBuilder();
 
 		implSb.append("package " + PropertyUtil.getProperty("sqlitepackage") + ".basedao;\n");
@@ -89,19 +89,7 @@ public class DaoGenerator implements Generator {
 		implSb.append("      " + NamingUtil.getClassName(tableName) + " entity=new " + NamingUtil.getClassName(tableName)
 				+ "(); \n");
 
-		for (int i = 0; i < colums.size(); i++) {
-			Entry<String, String> entry = colums.get(i);
-
-			String columnName = NamingUtil.getInstanceName(entry.getKey());
-			if (entry.getValue().startsWith("Int")) {
-
-				implSb.append("    entity." + columnName + "=cursor.isNull(COLUMNINDEXS." + columnName
-						+ " )? -1 :cursor.getInt(COLUMNINDEXS." + columnName + ");\n");
-			} else if (entry.getValue().startsWith("String")) {
-				implSb.append("    entity." + columnName + "=cursor.isNull(COLUMNINDEXS." + columnName
-						+ " )? \"\" :cursor.getString(COLUMNINDEXS." + columnName + ");\n");
-			}
-		}
+		genDataColumns(columns);
 		implSb.append("       list.append(index++,entity);\n");
 		implSb.append("       }; \n");
 
@@ -125,20 +113,8 @@ public class DaoGenerator implements Generator {
 
 		implSb.append("      " + NamingUtil.getClassName(tableName) + " entity=new " + NamingUtil.getClassName(tableName)
 				+ "(); \n");
-
-		for (int i = 0; i < colums.size(); i++) {
-			Entry<String, String> entry = colums.get(i);
-
-			String columnName = NamingUtil.getInstanceName(entry.getKey());
-			if (entry.getValue().startsWith("Int")) {
-
-				implSb.append("    entity." + columnName + "=cursor.isNull(COLUMNINDEXS." + columnName
-						+ " )? -1 :cursor.getInt(COLUMNINDEXS." + columnName + ");\n");
-			} else if (entry.getValue().startsWith("String")) {
-				implSb.append("    entity." + columnName + "=cursor.isNull(COLUMNINDEXS." + columnName
-						+ " )? \"\" :cursor.getString(COLUMNINDEXS." + columnName + ");\n");
-			}
-		}
+		genDataColumns(columns);
+		
 		implSb.append("       list.append(index++,entity);\n");
 		implSb.append("       }; \n");
 
@@ -160,16 +136,17 @@ public class DaoGenerator implements Generator {
 										implSb.append("	    cursor.close();\n");
 												implSb.append("	    return strid+1;\n");
 														implSb.append("	}\n");
-		genColumns(colums, 1);
-		genColumns(colums, 2);
+		genColumns(columns, 1);
+		genColumns(columns, 2);
 		// insert0
 		implSb.append("       private int insert0(SQLiteDatabase db, " + NamingUtil.getClassName(tableName)
 				+ " entity){ \n");
 
 		implSb.append("       ContentValues cv=new ContentValues(); \n");
 
-		for (int i = 0; i < colums.size(); i++) {
-			Entry<String, String> entry = colums.get(i);
+		////oo
+		for (int i = 0; i < columns.size(); i++) {
+			Entry<String, String> entry = columns.get(i);
 
 			String columnName = NamingUtil.getInstanceName(entry.getKey());
 
@@ -187,7 +164,6 @@ public class DaoGenerator implements Generator {
 				implSb.append("    cv.put(COLUMNS." + columnName + ", entity." + columnName + " );\n");
 			}
 		}
-		
 		implSb.append("          int strid=-1;  \n");
 		implSb.append("        if(db.insert(TABLENAME, null, cv)>0){ \n");
 		
@@ -206,8 +182,8 @@ public class DaoGenerator implements Generator {
 
 		implSb.append("       ContentValues cv=new ContentValues(1); \n");
 
-		for (int i = 0; i < colums.size(); i++) {
-			Entry<String, String> entry = colums.get(i);
+		for (int i = 0; i < columns.size(); i++) {
+			Entry<String, String> entry = columns.get(i);
 
 			String columnName = NamingUtil.getInstanceName(entry.getKey());
 
@@ -269,6 +245,29 @@ public class DaoGenerator implements Generator {
 		bos.close();
 	}
 
+	void genDataColumns(List<Entry<String, String>> columns){
+		for (int i = 0; i < columns.size(); i++) {
+			Entry<String, String> entry = columns.get(i);
+
+			String columnName = NamingUtil.getInstanceName(entry.getKey());
+			if (entry.getValue().startsWith("Int")) {
+
+				implSb.append("    entity." + columnName + "=cursor.isNull(COLUMNINDEXS." + columnName
+						+ " )? -1 :cursor.getInt(COLUMNINDEXS." + columnName + ");\n");
+			} else if (entry.getValue().startsWith("String")) {
+				implSb.append("    entity." + columnName + "=cursor.isNull(COLUMNINDEXS." + columnName
+						+ " )? \"\" :cursor.getString(COLUMNINDEXS." + columnName + ");\n");
+			}
+			else if (entry.getValue().startsWith("float")) {
+				implSb.append("    entity." + columnName + "=cursor.isNull(COLUMNINDEXS." + columnName
+						+ " )?0 :cursor.getFloat(COLUMNINDEXS." + columnName + ");\n");
+			}
+			else if (entry.getValue().startsWith("Double")) {
+				implSb.append("    entity." + columnName + "=cursor.isNull(COLUMNINDEXS." + columnName
+						+ " )? 0 :cursor.getDouble(COLUMNINDEXS." + columnName + ");\n");
+			}
+		}
+	}
 	public void genColumns(List<Entry<String, String>> colums, int type) {
 
 		if (type == 1) {
@@ -307,7 +306,9 @@ public class DaoGenerator implements Generator {
 			implSb.append("       public int insert(" + NamingUtil.getClassName(tableName) + " entity){\n ");
 			implSb.append("        SQLiteDatabase db=mOpenHelper.getWritableDatabase();\n ");
 			implSb.append("         try{\n ");
+			implSb.append("         if(entity.lifeStatus==null){;\n ");
 			implSb.append("         entity.lifeStatus=1;\n ");
+			implSb.append("         }\n ");
 			implSb.append("         entity.upgradeFlag=getUpgrade(db);\n ");
 			implSb.append("         return insert0(db, entity);\n ");
 		}
