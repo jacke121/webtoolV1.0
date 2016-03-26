@@ -130,7 +130,7 @@ public class DaoGenerator implements Generator {
 		modifytable(tableName, 2);// 参数查找
 		implSb.append("		public int getUpgrade( SQLiteDatabase db ){\n");
 		implSb.append("	    int strid = 0;\n");
-				implSb.append("	    Cursor cursor = db.rawQuery(\"select last_insert_rowid() from " + tableName+"\", null);\n");
+				implSb.append("	    Cursor cursor =  mOpenHelper.getReadableDatabase().rawQuery(\"select last_insert_rowid() from " + tableName+"\", null);\n");
 						implSb.append("	    if (cursor.moveToFirst())\n");
 								implSb.append("	        strid = cursor.getInt(0);\n");
 										implSb.append("	    cursor.close();\n");
@@ -168,7 +168,7 @@ public class DaoGenerator implements Generator {
 		implSb.append("        if(db.insert(TABLENAME, null, cv)>0){ \n");
 		
 		
-		implSb.append("         Cursor cursor = db.rawQuery(\"select last_insert_rowid() from \"+TABLENAME,null); \n");
+		implSb.append("         Cursor cursor = mOpenHelper.getReadableDatabase().rawQuery(\"select last_insert_rowid() from \"+TABLENAME,null); \n");
 		
 		implSb.append("         if(cursor.moveToFirst()) \n");
 		implSb.append("          strid= cursor.getInt(0); \n ");
@@ -345,8 +345,7 @@ public class DaoGenerator implements Generator {
 		}
 
 		implSb.append("         }finally{\n ");
-		implSb.append("         if (db!=null) db.close();\n ");
-
+//		implSb.append("         if (db!=null) db.close();\n ");
 		implSb.append("         }\n        }\n");
 
 	}
