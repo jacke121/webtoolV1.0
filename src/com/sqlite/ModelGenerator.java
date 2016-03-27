@@ -176,7 +176,7 @@ public class ModelGenerator implements Generator {
 						|| rs.getString("type").toUpperCase().equals("TIMESTAMP")) {
 					columType = "Date";
 				} else if (rs.getString("type").toLowerCase().equals("bigint")) {
-					columType = "Integer";
+					columType = "Long";
 				} else if (rs.getString("type").toLowerCase().equals("char")) {
 					columType = "String";
 				}

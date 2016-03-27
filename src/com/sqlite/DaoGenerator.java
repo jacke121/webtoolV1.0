@@ -128,11 +128,11 @@ public class DaoGenerator implements Generator {
 		// 批量更新
 		modifytable(tableName, 1);
 		modifytable(tableName, 2);// 参数查找
-		implSb.append("		public int getUpgrade( SQLiteDatabase db ){\n");
-		implSb.append("	    int strid = 0;\n");
+		implSb.append("		public Long getUpgrade( SQLiteDatabase db ){\n");
+		implSb.append("	    Long strid = 0l;\n");
 				implSb.append("	    Cursor cursor =  mOpenHelper.getReadableDatabase().rawQuery(\"select last_insert_rowid() from " + tableName+"\", null);\n");
 						implSb.append("	    if (cursor.moveToFirst())\n");
-								implSb.append("	        strid = cursor.getInt(0);\n");
+								implSb.append("	        strid = cursor.getLong(0);\n");
 										implSb.append("	    cursor.close();\n");
 												implSb.append("	    return strid+1;\n");
 														implSb.append("	}\n");
@@ -261,6 +261,10 @@ public class DaoGenerator implements Generator {
 			else if (entry.getValue().startsWith("float")) {
 				implSb.append("    entity." + columnName + "=cursor.isNull(COLUMNINDEXS." + columnName
 						+ " )?0 :cursor.getFloat(COLUMNINDEXS." + columnName + ");\n");
+			}
+			else if (entry.getValue().startsWith("Long")) {
+				implSb.append("    entity." + columnName + "=cursor.isNull(COLUMNINDEXS." + columnName
+						+ " )?0 :cursor.getLong(COLUMNINDEXS." + columnName + ");\n");
 			}
 			else if (entry.getValue().startsWith("Double")) {
 				implSb.append("    entity." + columnName + "=cursor.isNull(COLUMNINDEXS." + columnName
