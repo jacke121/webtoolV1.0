@@ -54,9 +54,14 @@ public class DaoGenerator implements Generator {
 		implSb.append("import android.database.sqlite.SQLiteOpenHelper;\n");
 		implSb.append("import java.text.SimpleDateFormat;\n");
 		implSb.append("import android.util.SparseArray;\n");
+		
+		implSb.append("import java.util.concurrent.locks.Lock;\n");
+		implSb.append("import java.util.concurrent.locks.ReentrantLock;\n");
 
 		implSb.append("\n\n");
 		implSb.append("public class " + NamingUtil.getClassName(tableName) + "Dao{\n");
+		implSb.append("Lock lock = new ReentrantLock();\n");
+		 
 		implSb.append(" public static final String TABLENAME =\"" + NamingUtil.getClassName(tableName) + "\";\n");
 
 		implSb.append(" public static final Object SYNC= new Object();\n");
@@ -91,12 +96,12 @@ public class DaoGenerator implements Generator {
 
 		genDataColumns(columns);
 		implSb.append("       list.append(index++,entity);\n");
-		implSb.append("       }; \n");
+		implSb.append("       }\n");
 
 		implSb.append("      cursor.close(); \n");
 		implSb.append("      return list; \n");
 
-		implSb.append("      } \n");
+		implSb.append("      }\n");
 		implSb.append("      }catch(Exception ex){ \n  ex.printStackTrace();");
 		implSb.append("       }finally{ \n if (cursor!= null) cursor.close();\n    }   return null;\n }\n");
 		//------------
@@ -116,12 +121,12 @@ public class DaoGenerator implements Generator {
 		genDataColumns(columns);
 		
 		implSb.append("       list.append(index++,entity);\n");
-		implSb.append("       }; \n");
+		implSb.append("       }\n");
 
 		implSb.append("      cursor.close(); \n");
 		implSb.append("      return list; \n");
 
-		implSb.append("      } \n");
+		implSb.append("      }\n");
 		implSb.append("      }catch(Exception ex){ \n  ex.printStackTrace();");
 		implSb.append("       }finally{ \n if (cursor!= null) cursor.close();\n    }   return null;\n }");
 		modifytable(tableName, 0);
@@ -319,11 +324,16 @@ public class DaoGenerator implements Generator {
 		// 编辑
 		if (type == 1) {
 			implSb.append("       public boolean update(" + NamingUtil.getClassName(tableName) + " entity){\n ");
-			implSb.append("        SQLiteDatabase db=mOpenHelper.getWritableDatabase();\n ");
+			implSb.append("        lock.lock();\n ");
+			 
+			implSb.append("        SQLiteDatabase db=mOpenHelper.getWritableDatabase();\n  try {\n");
 			implSb.append("         try{\n ");
 			implSb.append("         entity.upgradeFlag=getUpgrade(db);\n ");
 			implSb.append("         return update0(db, entity, COLUMNS." + pk
 					+ "+\"=?\", new String[]{String.valueOf(entity." + pk + ")} );\n ");
+			implSb.append("        } finally {\n ");
+			implSb.append("        lock.unlock();\n ");
+			implSb.append("        }\n ");
 
 		}
 		// 删除

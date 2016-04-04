@@ -195,7 +195,7 @@ public class ModelGenerator implements Generator {
 				}
 
 				else if (rs.getString("type").toUpperCase().startsWith("NUMERIC")) {
-					columType = "float";
+					columType = "double";
 				} else if (rs.getString("type").toUpperCase().startsWith("NVARCHAR")) {
 					columType = "String";
 				}else if (rs.getString("type").toUpperCase().startsWith("NVARCHAR")
