@@ -221,25 +221,29 @@ public class DaoGenerator implements Generator {
 
 	
 		Statement stat = Launch.con.createStatement();
-		ResultSet rs = stat.executeQuery("SELECT * FROM sqlite_master where type='table' and name='" + tableName + "'");
-
+		ResultSet rs = stat.executeQuery("SELECT type,sql FROM sqlite_master where (type='table' or type= 'index') and tbl_name='" + tableName + "'");
+		implSb.append("      public void createTable(SQLiteDatabase db) {\n");
 		// ResultSet rs = stat.executeQuery("select * from people;");
 		while (rs.next()) {
-			System.out.println("name = " + rs.getString("name"));
+			String type = rs.getString("type");
+			if(type.equals("table")	){
+				String sql = rs.getString("sql");
+				sql= sql.replace("CREATE TABLE", "CREATE TABLE IF NOT EXISTS");
+				sql=sql.replaceAll("\r\n", "");
+				sql=sql.replaceAll("\n", "");
+				
+//				sql= sql.replaceAll("\r\n" ,"\" + \n  \"" );
+				implSb.append("        db.execSQL(\"" +sql + "\"); \n");
+			}
+			else if(type.equals("index")){
+				String sql = rs.getString("sql");
+				sql= sql.replace("CREATE INDEX", "CREATE INDEX IF NOT EXISTS");
+				implSb.append("        db.execSQL(\"" +sql + "\"); \n");
+			}
 
-			implSb.append("      public void createTable(SQLiteDatabase db) {\n");
-
-			String sql = rs.getString("sql");
-			sql= sql.replace("CREATE TABLE", "CREATE TABLE IF NOT EXISTS");
-			sql=sql.replaceAll("\r\n", "");
-			sql=sql.replaceAll("\n", "");
 			
-//			sql= sql.replaceAll("\r\n" ,"\" + \n  \"" );
-			implSb.append("        db.execSQL(\"" +sql + "\"); \n");
-
-			implSb.append("     }\n");
 		}
-
+		implSb.append("     }\n");
 		implSb.append("     }\n");
 		String fileName = PropertyUtil.getProperty("daoFileFolder") + File.separator + NamingUtil.getClassName(tableName)
 				+ "Dao.java";
@@ -250,6 +254,7 @@ public class DaoGenerator implements Generator {
 		bos.close();
 	}
 
+	
 	void genDataColumns(List<Entry<String, String>> columns){
 		for (int i = 0; i < columns.size(); i++) {
 			Entry<String, String> entry = columns.get(i);
@@ -315,24 +320,29 @@ public class DaoGenerator implements Generator {
 			implSb.append("       public int insert(" + NamingUtil.getClassName(tableName) + " entity){\n ");
 			implSb.append("        SQLiteDatabase db=mOpenHelper.getWritableDatabase();\n ");
 			implSb.append("         try{\n ");
-			implSb.append("         if(entity.lifeStatus==null){;\n ");
+			implSb.append("         if(entity.lifeStatus==null){\n ");
 			implSb.append("         entity.lifeStatus=1;\n ");
 			implSb.append("         }\n ");
 			implSb.append("         entity.upgradeFlag=getUpgrade(db);\n ");
 			implSb.append("         return insert0(db, entity);\n ");
+			implSb.append("          }catch (Exception e) { e.printStackTrace();\n  return -1;\n}finally{\n ");
+			implSb.append("         }\n        }\n");
+
 		}
 		// 编辑
 		if (type == 1) {
 			implSb.append("       public boolean update(" + NamingUtil.getClassName(tableName) + " entity){\n ");
 			implSb.append("        lock.lock();\n ");
 			 
-			implSb.append("        SQLiteDatabase db=mOpenHelper.getWritableDatabase();\n  try {\n");
+			implSb.append("        SQLiteDatabase db=mOpenHelper.getWritableDatabase();\n");
 			implSb.append("         try{\n ");
 			implSb.append("         entity.upgradeFlag=getUpgrade(db);\n ");
 			implSb.append("         return update0(db, entity, COLUMNS." + pk
 					+ "+\"=?\", new String[]{String.valueOf(entity." + pk + ")} );\n ");
-			implSb.append("        } finally {\n ");
+			implSb.append("        }catch (Exception e) { e.printStackTrace();\n} finally {\n ");
 			implSb.append("        lock.unlock();\n ");
+			implSb.append("        }\n ");
+			implSb.append("                     return false;\n ");
 			implSb.append("        }\n ");
 
 		}
@@ -356,11 +366,11 @@ public class DaoGenerator implements Generator {
 			implSb.append("         try{\n ");
 			implSb.append("         return delete0(db=mOpenHelper.getWritableDatabase(), COLUMNS." + pk
 					+ "+\"=?\", new String[]{String.valueOf(entity." + pk + ")} );\n ");
+			implSb.append("         }finally{\n ");
+			implSb.append("         }\n        }\n");
+
 		}
 
-		implSb.append("         }finally{\n ");
-//		implSb.append("         if (db!=null) db.close();\n ");
-		implSb.append("         }\n        }\n");
-
+	
 	}
 }
