@@ -54,6 +54,8 @@ public class DaoGenerator implements Generator {
 		implSb.append("import android.database.sqlite.SQLiteOpenHelper;\n");
 		implSb.append("import java.text.SimpleDateFormat;\n");
 		implSb.append("import android.util.SparseArray;\n");
+		implSb.append("import android.database.sqlite.SQLiteStatement;\n");
+		
 		
 		implSb.append("import java.util.concurrent.locks.Lock;\n");
 		implSb.append("import java.util.concurrent.locks.ReentrantLock;\n");
@@ -61,13 +63,39 @@ public class DaoGenerator implements Generator {
 		implSb.append("\n\n");
 		implSb.append("public class " + NamingUtil.getClassName(tableName) + "Dao{\n");
 		implSb.append("Lock lock = new ReentrantLock();\n");
-		 
+		implSb.append("    SimpleDateFormat dfu = new SimpleDateFormat(\"yyyy-MM-dd HH:mm:ss\");\n");
 		implSb.append(" public static final String TABLENAME =\"" + NamingUtil.getClassName(tableName) + "\";\n");
-
-		implSb.append(" public static final Object SYNC= new Object();\n");
+		implSb.append("  COLUMNINDEXS cOLUMNINDEXS=new COLUMNINDEXS();\n");
+		implSb.append("  COLUMNS cOLUMNS=new COLUMNS();\n");
+		implSb.append(" public final Object SYNC= new Object();\n");
 		implSb.append(" private final SQLiteOpenHelper mOpenHelper;\n");
 		implSb.append(" public " + NamingUtil.getClassName(tableName) + "Dao(SQLiteOpenHelper openHelper){\n");
-		implSb.append("   mOpenHelper=openHelper;\n   }\n");
+implSb.append("   mOpenHelper=openHelper;\n  ");
+		
+		Statement stat = Launch.con.createStatement();
+		ResultSet rs = stat.executeQuery("SELECT type,sql FROM sqlite_master where (type='table' or type= 'index') and tbl_name='" + tableName + "'");
+		while (rs.next()) {
+			String type = rs.getString("type");
+			if(type.equals("table")	){
+				String sql = rs.getString("sql");
+				sql= sql.replace("CREATE TABLE", "CREATE TABLE IF NOT EXISTS");
+				sql=sql.replaceAll("\r\n", "");
+				sql=sql.replaceAll("\n", "");
+				
+//				sql= sql.replaceAll("\r\n" ,"\" + \n  \"" );
+				implSb.append("        mOpenHelper.getWritableDatabase().execSQL(\"" +sql + "\"); \n");
+			}
+			else if(type.equals("index")){
+				String sql = rs.getString("sql");
+				sql= sql.replace("CREATE INDEX", "CREATE INDEX IF NOT EXISTS");
+				implSb.append("        mOpenHelper.getWritableDatabase().execSQL(\"" +sql + "\"); \n");
+			}
+
+			
+		}
+		rs.close();
+		
+		implSb.append("      }\n");
 
 		// 查询
 		implSb.append("   public Cursor query(String whereClause, String []whereArgs){\n");
@@ -78,8 +106,165 @@ public class DaoGenerator implements Generator {
 		implSb.append("     return mOpenHelper.getReadableDatabase().rawQuery(sql, whereArgs);\n");
 
 		implSb.append("     }\n\n\n");
-		// + COLUMNS.username + ","+ COLUMNS.ID
-//---
+		// + cOLUMNS.username + ","+ cOLUMNS.ID
+		//-------------insertList
+		implSb.append("       public  boolean insertList( SparseArray<"+NamingUtil.getClassName(tableName)+"> list) {\n");
+		implSb.append("              if ( null == list || list.size() <= 0) {\n");
+		implSb.append("                  return false;\n");
+		implSb.append("              }\n");
+		implSb.append("                       SQLiteDatabase db = mOpenHelper.getWritableDatabase();\n");
+		implSb.append("                      try {\n");
+		           
+		implSb.append("   	            String sql =\"insert into " +tableName + "(\" \n");
+		
+         
+		String wenhao="";
+		for (int i = 0; i < columns.size(); i++) {
+			Entry<String, String> entry = columns.get(i);
+			String columnName = NamingUtil.getInstanceName(entry.getKey());
+			if(i==columns.size()-1)
+				implSb.append("   + cOLUMNS." + columnName);
+			else implSb.append("   + cOLUMNS." + columnName +  "+\",\"");
+				wenhao+=",?";
+		}
+	
+		implSb.append("        + \") \" + \"values("+wenhao.substring(1)+")\";\n");
+		implSb.append("   	            SQLiteStatement stat = db.compileStatement(sql);\n");
+		implSb.append("   	            db.beginTransaction();\n");
+        implSb.append("   	             for (int i=0;i<list.size();i++)  {\n");
+        implSb.append("   "+NamingUtil.getClassName(tableName)+" entity = list.get(i);  \n");
+		
+		for (int i = 0; i < columns.size(); i++) {
+			Entry<String, String> entry = columns.get(i);
+			String columnName = NamingUtil.getInstanceName(entry.getKey());
+			 if (entry.getValue().contains("Int")||entry.getValue().startsWith("Long")) {
+				 
+					implSb.append("  if(null==entity."+ columnName + ") ");
+					 if(columnName.toLowerCase().equals("lifestatus")){
+						 implSb.append("   stat.bindLong("+(i+1)+",1);else\n");
+					 }else if(columnName.toLowerCase().equals("upgradeflag")){
+						 implSb.append("   stat.bindLong("+(i+1)+",1);else\n");
+					 }else{
+						 implSb.append("   stat.bindNull("+(i+1)+"); else\n"); 
+					 }
+					
+				implSb.append("   stat.bindLong(" +(i+1)+",entity."+ columnName + ");\n");
+			} else if (entry.getValue().startsWith("String")) {
+				implSb.append("  if(null==entity."+ columnName + "||entity."+ columnName +".length()==0) ");
+				implSb.append("   stat.bindNull("+(i+1)+");else\n");
+				implSb.append("   stat.bindString(" +(i+1)+",entity."+ columnName + ");\n");
+			}
+			else if (entry.getValue().toLowerCase().startsWith("float")||entry.getValue().toLowerCase().startsWith("double")) {
+				implSb.append("   stat.bindDouble(" +(i+1)+",entity."+ columnName + ");\n");
+			}
+			else if (entry.getValue().contains("Date")) {
+//					implSb.append("  if(null==entity."+ columnName + ") ");
+//					implSb.append("   stat.bindNull("+(i+1)+"); else\n");
+				implSb.append("   stat.bindString(" +(i+1)+",dfu.format(new Date()));\n");
+			} 
+			 
+		}
+		  
+		implSb.append("  		              long result = stat.executeInsert();\n");		 
+		implSb.append("  		                if (result < 0) {\n");		 
+		implSb.append("  		                    return false;\n");		 
+		implSb.append("  		                }\n");		 
+		implSb.append("  		            }\n");		 
+		implSb.append("  		            db.setTransactionSuccessful();\n");		 
+		implSb.append("  		        } catch (Exception e) {\n");		 
+		implSb.append("  		            e.printStackTrace();\n");		 
+		implSb.append("             return false;\n");	
+		implSb.append("         } finally {\n");	
+		implSb.append("             try {\n");	
+		implSb.append("                     if (null != db) {\n");	
+		implSb.append("                         db.endTransaction();\n");	 
+		implSb.append("                     }\n");	
+		implSb.append("                 } catch (Exception e) {\n");	
+		implSb.append("                     e.printStackTrace();\n");	
+		implSb.append("     	            }\n");	
+		implSb.append("             }\n");	
+		implSb.append("             return true;\n");	
+		implSb.append("         }\n");	
+		/////////-------updateList
+		implSb.append("       public  boolean updateList( SparseArray<"+NamingUtil.getClassName(tableName)+"> list) {\n");
+		implSb.append("              if ( null == list || list.size() <= 0) {\n");
+		implSb.append("                  return false;\n");
+		implSb.append("              }\n");
+		implSb.append("                       SQLiteDatabase db = mOpenHelper.getWritableDatabase();\n");
+		implSb.append("                      try {\n");
+		           
+		implSb.append("   	            String sql =\"update " +tableName+" set ");
+		
+		for (int i = 0; i < columns.size(); i++) {
+			Entry<String, String> entry = columns.get(i);
+			String columnName = NamingUtil.getInstanceName(entry.getKey());
+			if(i==columns.size()-1){
+				implSb.append(columnName +  "=? where id=?\";\n");
+			}
+			else{
+				implSb.append(columnName +  "=?,");
+			}
+		}
+		implSb.append("   	            SQLiteStatement stat = db.compileStatement(sql);\n");
+		implSb.append("   	            db.beginTransaction();\n");
+        implSb.append("   	             for (int i=0;i<list.size();i++)  {\n");
+        implSb.append("   "+NamingUtil.getClassName(tableName)+" entity = list.get(i);  \n");
+		
+		for (int i = 0; i < columns.size(); i++) {
+			Entry<String, String> entry = columns.get(i);
+			String columnName = NamingUtil.getInstanceName(entry.getKey());
+			 if (entry.getValue().contains("Int")||entry.getValue().startsWith("Long")) {
+				 
+					implSb.append("  if(null==entity."+ columnName + ") ");
+					 if(columnName.toLowerCase().equals("lifestatus")){
+						 implSb.append("   stat.bindLong("+(i+1)+",1);else\n");
+					 }else if(columnName.toLowerCase().equals("upgradeflag")){
+						 implSb.append("   stat.bindLong("+(i+1)+",1);else\n");
+					 }else{
+						 implSb.append("   stat.bindNull("+(i+1)+"); else\n"); 
+					 }
+					
+				implSb.append("   stat.bindLong(" +(i+1)+",entity."+ columnName + ");\n");
+			} else if (entry.getValue().startsWith("String")) {
+				implSb.append("  if(null==entity."+ columnName + "||entity."+ columnName +".length()==0) ");
+				implSb.append("   stat.bindNull("+(i+1)+");else\n");
+				implSb.append("   stat.bindString(" +(i+1)+",entity."+ columnName + ");\n");
+			}
+			else if (entry.getValue().toLowerCase().startsWith("float")||entry.getValue().toLowerCase().startsWith("double")) {
+				implSb.append("   stat.bindDouble(" +(i+1)+",entity."+ columnName + ");\n");
+			}
+			else if (entry.getValue().contains("Date")) {
+//					implSb.append("  if(null==entity."+ columnName + ") ");
+//					implSb.append("   stat.bindNull("+(i+1)+"); else\n");
+				implSb.append("   stat.bindString(" +(i+1)+",dfu.format(new Date()));\n");
+			} 
+			 if(i==columns.size()-1){
+					implSb.append("   stat.bindDouble(" +(i+2)+",entity.id);\n"); 
+			 }
+			 
+		}
+		  
+		implSb.append("  		              long result = stat.executeInsert();\n");		 
+		implSb.append("  		                if (result < 0) {\n");		 
+		implSb.append("  		                    return false;\n");		 
+		implSb.append("  		                }\n");		 
+		implSb.append("  		            }\n");		 
+		implSb.append("  		            db.setTransactionSuccessful();\n");		 
+		implSb.append("  		        } catch (Exception e) {\n");		 
+		implSb.append("  		            e.printStackTrace();\n");		 
+		implSb.append("             return false;\n");	
+		implSb.append("         } finally {\n");	
+		implSb.append("             try {\n");	
+		implSb.append("                     if (null != db) {\n");	
+		implSb.append("                         db.endTransaction();\n");	 
+		implSb.append("                     }\n");	
+		implSb.append("                 } catch (Exception e) {\n");	
+		implSb.append("                     e.printStackTrace();\n");	
+		implSb.append("     	            }\n");	
+		implSb.append("             }\n");	
+		implSb.append("             return true;\n");	
+		implSb.append("         }\n");	
+//--------------
 		implSb.append("     public SparseArray<"+ NamingUtil.getClassName(tableName)+"> queryBySql(String sql, String []whereArgs){\n");
 
 		implSb.append("     Cursor cursor=null;\n");
@@ -129,7 +314,6 @@ public class DaoGenerator implements Generator {
 		implSb.append("      }\n");
 		implSb.append("      }catch(Exception ex){ \n  ex.printStackTrace();");
 		implSb.append("       }finally{ \n if (cursor!= null) cursor.close();\n    }   return null;\n }");
-		modifytable(tableName, 0);
 		// 批量更新
 		modifytable(tableName, 1);
 		modifytable(tableName, 2);// 参数查找
@@ -143,44 +327,7 @@ public class DaoGenerator implements Generator {
 														implSb.append("	}\n");
 		genColumns(columns, 1);
 		genColumns(columns, 2);
-		// insert0
-		implSb.append("       private int insert0(SQLiteDatabase db, " + NamingUtil.getClassName(tableName)
-				+ " entity){ \n");
 
-		implSb.append("       ContentValues cv=new ContentValues(); \n");
-
-		////oo
-		for (int i = 0; i < columns.size(); i++) {
-			Entry<String, String> entry = columns.get(i);
-
-			String columnName = NamingUtil.getInstanceName(entry.getKey());
-
-			if (columnName.toLowerCase().equals("updatetime")) {
-
-				implSb.append("    SimpleDateFormat dfu = new SimpleDateFormat(\"yyyy-MM-dd HH:mm:ss\");\n");
-				implSb.append("    cv.put(COLUMNS.updatetime, dfu.format(new Date()));");
-
-			} else if (columnName.toLowerCase().equals("createtime")) {
-
-				implSb.append("    SimpleDateFormat df = new SimpleDateFormat(\"yyyy-MM-dd HH:mm:ss\");\n"
-						+ "    cv.put(COLUMNS.createtime, df.format(new Date()));\n");
-			} else if (columnName.toLowerCase().equals(Globel.tableKey.get(tableName))) {
-			} else {
-				implSb.append("    cv.put(COLUMNS." + columnName + ", entity." + columnName + " );\n");
-			}
-		}
-		implSb.append("          int strid=-1;  \n");
-		implSb.append("        if(db.insert(TABLENAME, null, cv)>0){ \n");
-		
-		
-		implSb.append("         Cursor cursor = mOpenHelper.getReadableDatabase().rawQuery(\"select last_insert_rowid() from \"+TABLENAME,null); \n");
-		
-		implSb.append("         if(cursor.moveToFirst()) \n");
-		implSb.append("          strid= cursor.getInt(0); \n ");
-		implSb.append("         cursor.close();\n ");
-		implSb.append("           }\n");
-		implSb.append("          return strid; \n");
-		implSb.append("         }\n");
 
 		implSb.append("       private boolean update0(SQLiteDatabase db, " + NamingUtil.getClassName(tableName)
 				+ " entity, String whereClause, String []whereArgs){ \n");
@@ -194,12 +341,11 @@ public class DaoGenerator implements Generator {
 
 			if (columnName.toLowerCase().equals("updatetime")) {
 
-				implSb.append("    SimpleDateFormat dfu = new SimpleDateFormat(\"yyyy-MM-dd HH:mm:ss\");\n");
-				implSb.append("    cv.put(COLUMNS.updatetime, dfu.format(new Date()));\n");
+				implSb.append("    cv.put(cOLUMNS.updatetime, dfu.format(new Date()));\n");
 
 			} else if (columnName.toLowerCase().equals("createtime")) {
 			} else {
-				implSb.append("    cv.put(COLUMNS." + columnName + ", entity." + columnName + " );\n");
+				implSb.append("    cv.put(cOLUMNS." + columnName + ", entity." + columnName + " );\n");
 			}
 		}
 		implSb.append("        return db.update(TABLENAME, cv, whereClause, whereArgs) >0; \n");
@@ -217,34 +363,8 @@ public class DaoGenerator implements Generator {
 		implSb.append("     e.printStackTrace();\n");
 		implSb.append("    return false;\n");
 		implSb.append("     }\n");
-		implSb.append("     }\n");
+		implSb.append("     }\n         }\n");
 
-	
-		Statement stat = Launch.con.createStatement();
-		ResultSet rs = stat.executeQuery("SELECT type,sql FROM sqlite_master where (type='table' or type= 'index') and tbl_name='" + tableName + "'");
-		implSb.append("      public void createTable(SQLiteDatabase db) {\n");
-		// ResultSet rs = stat.executeQuery("select * from people;");
-		while (rs.next()) {
-			String type = rs.getString("type");
-			if(type.equals("table")	){
-				String sql = rs.getString("sql");
-				sql= sql.replace("CREATE TABLE", "CREATE TABLE IF NOT EXISTS");
-				sql=sql.replaceAll("\r\n", "");
-				sql=sql.replaceAll("\n", "");
-				
-//				sql= sql.replaceAll("\r\n" ,"\" + \n  \"" );
-				implSb.append("        db.execSQL(\"" +sql + "\"); \n");
-			}
-			else if(type.equals("index")){
-				String sql = rs.getString("sql");
-				sql= sql.replace("CREATE INDEX", "CREATE INDEX IF NOT EXISTS");
-				implSb.append("        db.execSQL(\"" +sql + "\"); \n");
-			}
-
-			
-		}
-		implSb.append("     }\n");
-		implSb.append("     }\n");
 		String fileName = PropertyUtil.getProperty("daoFileFolder") + File.separator + NamingUtil.getClassName(tableName)
 				+ "Dao.java";
 		File file = new File(fileName);
@@ -262,23 +382,23 @@ public class DaoGenerator implements Generator {
 			String columnName = NamingUtil.getInstanceName(entry.getKey());
 			if (entry.getValue().startsWith("Int")) {
 
-				implSb.append("    entity." + columnName + "=cursor.isNull(COLUMNINDEXS." + columnName
-						+ " )? -1 :cursor.getInt(COLUMNINDEXS." + columnName + ");\n");
+				implSb.append("    entity." + columnName + "=cursor.isNull(cOLUMNINDEXS." + columnName
+						+ " )? -1 :cursor.getInt(cOLUMNINDEXS." + columnName + ");\n");
 			} else if (entry.getValue().startsWith("String")) {
-				implSb.append("    entity." + columnName + "=cursor.isNull(COLUMNINDEXS." + columnName
-						+ " )? \"\" :cursor.getString(COLUMNINDEXS." + columnName + ");\n");
+				implSb.append("    entity." + columnName + "=cursor.isNull(cOLUMNINDEXS." + columnName
+						+ " )? \"\" :cursor.getString(cOLUMNINDEXS." + columnName + ");\n");
 			}
 			else if (entry.getValue().startsWith("float")) {
-				implSb.append("    entity." + columnName + "=cursor.isNull(COLUMNINDEXS." + columnName
-						+ " )?0 :cursor.getFloat(COLUMNINDEXS." + columnName + ");\n");
+				implSb.append("    entity." + columnName + "=cursor.isNull(cOLUMNINDEXS." + columnName
+						+ " )?0 :cursor.getFloat(cOLUMNINDEXS." + columnName + ");\n");
 			}
 			else if (entry.getValue().startsWith("Long")) {
-				implSb.append("    entity." + columnName + "=cursor.isNull(COLUMNINDEXS." + columnName
-						+ " )?0 :cursor.getLong(COLUMNINDEXS." + columnName + ");\n");
+				implSb.append("    entity." + columnName + "=cursor.isNull(cOLUMNINDEXS." + columnName
+						+ " )?0 :cursor.getLong(cOLUMNINDEXS." + columnName + ");\n");
 			}
 			else if (entry.getValue().startsWith("Double")) {
-				implSb.append("    entity." + columnName + "=cursor.isNull(COLUMNINDEXS." + columnName
-						+ " )? 0 :cursor.getDouble(COLUMNINDEXS." + columnName + ");\n");
+				implSb.append("    entity." + columnName + "=cursor.isNull(cOLUMNINDEXS." + columnName
+						+ " )? 0 :cursor.getDouble(cOLUMNINDEXS." + columnName + ");\n");
 			}
 		}
 	}
@@ -286,23 +406,23 @@ public class DaoGenerator implements Generator {
 
 		if (type == 1) {
 
-			implSb.append("   public static final class COLUMNINDEXS{\n");
+			implSb.append("   public final class COLUMNINDEXS{\n");
 			for (int i = 0; i < colums.size(); i++) {
 				Entry<String, String> entry = colums.get(i);
 
 				String columnName = NamingUtil.getInstanceName(entry.getKey());
 
-				implSb.append("    public static final int " + columnName + "=" + i+";\n");
+				implSb.append("    public final int " + columnName + "=" + i+";\n");
 			}
 			implSb.append("   }\n");
 		} else if (type == 2) {
-			implSb.append("   public static final class COLUMNS{\n");
+			implSb.append("   public final class COLUMNS{\n");
 			for (int i = 0; i < colums.size(); i++) {
 				Entry<String, String> entry = colums.get(i);
 
 				String columnName = NamingUtil.getInstanceName(entry.getKey());
 
-				implSb.append("    public static final String " + columnName + "=\"[" + columnName + "]\";\n");
+				implSb.append("    public final String " + columnName + "=\"[" + columnName + "]\";\n");
 			}
 			implSb.append("   }\n");
 		}
@@ -315,20 +435,7 @@ public class DaoGenerator implements Generator {
 
 		String pk = Globel.tableKey.get(tableName);
 
-		// 新增
-		if (type == 0) {
-			implSb.append("       public int insert(" + NamingUtil.getClassName(tableName) + " entity){\n ");
-			implSb.append("        SQLiteDatabase db=mOpenHelper.getWritableDatabase();\n ");
-			implSb.append("         try{\n ");
-			implSb.append("         if(entity.lifeStatus==null){\n ");
-			implSb.append("         entity.lifeStatus=1;\n ");
-			implSb.append("         }\n ");
-			implSb.append("         entity.upgradeFlag=getUpgrade(db);\n ");
-			implSb.append("         return insert0(db, entity);\n ");
-			implSb.append("          }catch (Exception e) { e.printStackTrace();\n  return -1;\n}finally{\n ");
-			implSb.append("         }\n        }\n");
-
-		}
+		
 		// 编辑
 		if (type == 1) {
 			implSb.append("       public boolean update(" + NamingUtil.getClassName(tableName) + " entity){\n ");
@@ -336,8 +443,8 @@ public class DaoGenerator implements Generator {
 			 
 			implSb.append("        SQLiteDatabase db=mOpenHelper.getWritableDatabase();\n");
 			implSb.append("         try{\n ");
-			implSb.append("         entity.upgradeFlag=getUpgrade(db);\n ");
-			implSb.append("         return update0(db, entity, COLUMNS." + pk
+			//implSb.append("         entity.upgradeFlag=getUpgrade(db);\n ");
+			implSb.append("         return update0(db, entity, cOLUMNS." + pk
 					+ "+\"=?\", new String[]{String.valueOf(entity." + pk + ")} );\n ");
 			implSb.append("        }catch (Exception e) { e.printStackTrace();\n} finally {\n ");
 			implSb.append("        lock.unlock();\n ");
@@ -364,7 +471,7 @@ public class DaoGenerator implements Generator {
 			implSb.append("       public boolean delete(" + NamingUtil.getClassName(tableName) + " entity){\n ");
 			implSb.append("        SQLiteDatabase db=null;\n ");
 			implSb.append("         try{\n ");
-			implSb.append("         return delete0(db=mOpenHelper.getWritableDatabase(), COLUMNS." + pk
+			implSb.append("         return delete0(db=mOpenHelper.getWritableDatabase(), cOLUMNS." + pk
 					+ "+\"=?\", new String[]{String.valueOf(entity." + pk + ")} );\n ");
 			implSb.append("         }finally{\n ");
 			implSb.append("         }\n        }\n");
