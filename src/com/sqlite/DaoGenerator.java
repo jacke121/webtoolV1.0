@@ -239,12 +239,12 @@ implSb.append("   mOpenHelper=openHelper;\n  ");
 				implSb.append("   stat.bindString(" +(i+1)+",dfu.format(new Date()));\n");
 			} 
 			 if(i==columns.size()-1){
-					implSb.append("   stat.bindDouble(" +(i+2)+",entity.id);\n"); 
+					implSb.append("   stat.bindLong(" +(i+2)+",entity.id);\n"); 
 			 }
 			 
 		}
 		  
-		implSb.append("  		              long result = stat.executeInsert();\n");		 
+		implSb.append("  		              long result = stat.executeUpdateDelete();\n");		 
 		implSb.append("  		                if (result < 0) {\n");		 
 		implSb.append("  		                    return false;\n");		 
 		implSb.append("  		                }\n");		 
