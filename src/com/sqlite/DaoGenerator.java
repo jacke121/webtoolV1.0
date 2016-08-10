@@ -55,19 +55,17 @@ public class DaoGenerator implements Generator {
 		implSb.append("import java.text.SimpleDateFormat;\n");
 		implSb.append("import android.util.SparseArray;\n");
 		implSb.append("import android.database.sqlite.SQLiteStatement;\n");
-		
-		
-		implSb.append("import java.util.concurrent.locks.Lock;\n");
-		implSb.append("import java.util.concurrent.locks.ReentrantLock;\n");
+		implSb.append("import java.text.ParseException;\n");
+		implSb.append("import android.util.Log;\n");
+		implSb.append("import java.util.concurrent.locks.ReentrantReadWriteLock;\n");
 
 		implSb.append("\n\n");
 		implSb.append("public class " + NamingUtil.getClassName(tableName) + "Dao{\n");
-		implSb.append("Lock lock = new ReentrantLock();\n");
+		implSb.append("  ReentrantReadWriteLock rwl = new ReentrantReadWriteLock();\n");
 		implSb.append("    SimpleDateFormat dfu = new SimpleDateFormat(\"yyyy-MM-dd HH:mm:ss\");\n");
 		implSb.append(" public static final String TABLENAME =\"" + NamingUtil.getClassName(tableName) + "\";\n");
 		implSb.append("  COLUMNINDEXS cOLUMNINDEXS=new COLUMNINDEXS();\n");
 		implSb.append("  COLUMNS cOLUMNS=new COLUMNS();\n");
-		implSb.append(" public final Object SYNC= new Object();\n");
 		implSb.append(" private final SQLiteOpenHelper mOpenHelper;\n");
 		implSb.append(" public " + NamingUtil.getClassName(tableName) + "Dao(SQLiteOpenHelper openHelper){\n");
 implSb.append("   mOpenHelper=openHelper;\n  ");
@@ -87,7 +85,7 @@ implSb.append("   mOpenHelper=openHelper;\n  ");
 			}
 			else if(type.equals("index")){
 				String sql = rs.getString("sql");
-				sql= sql.replace("CREATE INDEX", "CREATE INDEX IF NOT EXISTS");
+				sql= sql.replace(" INDEX ", " INDEX IF NOT EXISTS ");
 				implSb.append("        mOpenHelper.getWritableDatabase().execSQL(\"" +sql + "\"); \n");
 			}
 
@@ -129,10 +127,11 @@ implSb.append("   mOpenHelper=openHelper;\n  ");
 		}
 	
 		implSb.append("        + \") \" + \"values("+wenhao.substring(1)+")\";\n");
+		implSb.append("   	            String createdate= dfu.format(new Date());\n");
 		implSb.append("   	            SQLiteStatement stat = db.compileStatement(sql);\n");
 		implSb.append("   	            db.beginTransaction();\n");
         implSb.append("   	             for (int i=0;i<list.size();i++)  {\n");
-        implSb.append("   "+NamingUtil.getClassName(tableName)+" entity = list.get(i);  \n");
+        implSb.append("   "+NamingUtil.getClassName(tableName)+" entity = list.get(list.keyAt(i));  \n");
 		
 		for (int i = 0; i < columns.size(); i++) {
 			Entry<String, String> entry = columns.get(i);
@@ -160,17 +159,18 @@ implSb.append("   mOpenHelper=openHelper;\n  ");
 			else if (entry.getValue().contains("Date")) {
 //					implSb.append("  if(null==entity."+ columnName + ") ");
 //					implSb.append("   stat.bindNull("+(i+1)+"); else\n");
-				implSb.append("   stat.bindString(" +(i+1)+",dfu.format(new Date()));\n");
+				implSb.append("   stat.bindString(" +(i+1)+",createdate);\n");
 			} 
 			 
 		}
 		  
 		implSb.append("  		              long result = stat.executeInsert();\n");		 
 		implSb.append("  		                if (result < 0) {\n");		 
-		implSb.append("  		                    return false;\n");		 
-		implSb.append("  		                }\n");		 
-		implSb.append("  		            }\n");		 
-		implSb.append("  		            db.setTransactionSuccessful();\n");		 
+		implSb.append("  		                    return false;\n");
+		implSb.append("  		                }\n");
+		implSb.append("  		            entity.id=(int)result;\n");
+		implSb.append("  		            }\n");
+		implSb.append("  		            db.setTransactionSuccessful();\n");
 		implSb.append("  		        } catch (Exception e) {\n");		 
 		implSb.append("  		            e.printStackTrace();\n");		 
 		implSb.append("             return false;\n");	
@@ -191,8 +191,9 @@ implSb.append("   mOpenHelper=openHelper;\n  ");
 		implSb.append("                  return false;\n");
 		implSb.append("              }\n");
 		implSb.append("                       SQLiteDatabase db = mOpenHelper.getWritableDatabase();\n");
+		implSb.append("   	            			String createdate= dfu.format(new Date());\n");
 		implSb.append("                      try {\n");
-		           
+		implSb.append("       rwl.writeLock().lock();\n");
 		implSb.append("   	            String sql =\"update " +tableName+" set ");
 		
 		for (int i = 0; i < columns.size(); i++) {
@@ -236,7 +237,7 @@ implSb.append("   mOpenHelper=openHelper;\n  ");
 			else if (entry.getValue().contains("Date")) {
 //					implSb.append("  if(null==entity."+ columnName + ") ");
 //					implSb.append("   stat.bindNull("+(i+1)+"); else\n");
-				implSb.append("   stat.bindString(" +(i+1)+",dfu.format(new Date()));\n");
+				implSb.append("   stat.bindString(" +(i+1)+",createdate);\n");
 			} 
 			 if(i==columns.size()-1){
 					implSb.append("   stat.bindLong(" +(i+2)+",entity.id);\n"); 
@@ -249,9 +250,10 @@ implSb.append("   mOpenHelper=openHelper;\n  ");
 		implSb.append("  		                    return false;\n");		 
 		implSb.append("  		                }\n");		 
 		implSb.append("  		            }\n");		 
-		implSb.append("  		            db.setTransactionSuccessful();\n");		 
+		implSb.append("  		            db.setTransactionSuccessful();\n");
+		implSb.append("       rwl.writeLock().unlock();\n");
 		implSb.append("  		        } catch (Exception e) {\n");		 
-		implSb.append("  		            e.printStackTrace();\n");		 
+		implSb.append("  		          Log.e(\""+tableName+"updateList\", Log.getStackTraceString(e));\n");
 		implSb.append("             return false;\n");	
 		implSb.append("         } finally {\n");	
 		implSb.append("             try {\n");	
@@ -270,7 +272,6 @@ implSb.append("   mOpenHelper=openHelper;\n  ");
 		implSb.append("     Cursor cursor=null;\n");
 		implSb.append("     int index=0;\n");
 		implSb.append("     try{\n");
-		implSb.append("       synchronized(SYNC){\n");
 		implSb.append("      if ( (cursor =  mOpenHelper.getReadableDatabase().rawQuery(sql, whereArgs))==null || cursor.getCount()<1)return null;\n");
 		implSb.append("     SparseArray<" + NamingUtil.getClassName(tableName) + "> list = new SparseArray<"
 				+ NamingUtil.getClassName(tableName) + ">(cursor.getCount());\n");
@@ -286,7 +287,7 @@ implSb.append("   mOpenHelper=openHelper;\n  ");
 		implSb.append("      cursor.close(); \n");
 		implSb.append("      return list; \n");
 
-		implSb.append("      }\n");
+	//	implSb.append("      }\n");
 		implSb.append("      }catch(Exception ex){ \n  ex.printStackTrace();");
 		implSb.append("       }finally{ \n if (cursor!= null) cursor.close();\n    }   return null;\n }\n");
 		//------------
@@ -295,7 +296,6 @@ implSb.append("   mOpenHelper=openHelper;\n  ");
 		implSb.append("     Cursor cursor=null;\n");
 		implSb.append("     int index=0;\n");
 		implSb.append("     try{\n");
-		implSb.append("       synchronized(SYNC){\n");
 		implSb.append("      if ( (cursor = query(whereClause, whereArgs) )==null || cursor.getCount()<1)return null;\n");
 		implSb.append("     SparseArray<" + NamingUtil.getClassName(tableName) + "> list = new SparseArray<"
 				+ NamingUtil.getClassName(tableName) + ">(cursor.getCount());\n");
@@ -310,13 +310,11 @@ implSb.append("   mOpenHelper=openHelper;\n  ");
 
 		implSb.append("      cursor.close(); \n");
 		implSb.append("      return list; \n");
-
-		implSb.append("      }\n");
 		implSb.append("      }catch(Exception ex){ \n  ex.printStackTrace();");
 		implSb.append("       }finally{ \n if (cursor!= null) cursor.close();\n    }   return null;\n }");
 		// 批量更新
-		modifytable(tableName, 1);
-		modifytable(tableName, 2);// 参数查找
+		modifytable(tableName, 1,columns);
+		modifytable(tableName, 2,columns);
 		implSb.append("		public Long getUpgrade( SQLiteDatabase db ){\n");
 		implSb.append("	    Long strid = 0l;\n");
 				implSb.append("	    Cursor cursor =  mOpenHelper.getReadableDatabase().rawQuery(\"select last_insert_rowid() from " + tableName+"\", null);\n");
@@ -360,7 +358,7 @@ implSb.append("   mOpenHelper=openHelper;\n  ");
 		implSb.append("     db.execSQL(\"drop table if exists " + NamingUtil.getClassName(tableName) + "\");\n");
 		implSb.append("     return true;\n");
 		implSb.append("     } catch (Exception e) {\n");
-		implSb.append("     e.printStackTrace();\n");
+		implSb.append("  		          Log.e(\""+tableName+"update\", Log.getStackTraceString(e));\n");
 		implSb.append("    return false;\n");
 		implSb.append("     }\n");
 		implSb.append("     }\n         }\n");
@@ -398,7 +396,18 @@ implSb.append("   mOpenHelper=openHelper;\n  ");
 			}
 			else if (entry.getValue().startsWith("Double")) {
 				implSb.append("    entity." + columnName + "=cursor.isNull(cOLUMNINDEXS." + columnName
-						+ " )? 0 :cursor.getDouble(cOLUMNINDEXS." + columnName + ");\n");
+								+ " )? 0 :cursor.getDouble(cOLUMNINDEXS." + columnName + ");\n");
+			}else if (entry.getValue().startsWith("Date")) {
+
+				implSb.append("    	Date date"+ columnName + "  = null;");
+				implSb.append("   	try {");
+				implSb.append("   	if(!cursor.isNull(cOLUMNINDEXS." + columnName + " )){");
+				implSb.append("   		date"+ columnName + " = (Date) dfu.parse(cursor.getString(cOLUMNINDEXS." + columnName + "));");
+				implSb.append("   			}");
+				implSb.append("   			} catch (ParseException e) {");
+				implSb.append("   			e.printStackTrace();");
+				implSb.append("   			}");
+				implSb.append("   	entity." + columnName + "=date"+ columnName + ";");
 			}
 		}
 	}
@@ -429,7 +438,7 @@ implSb.append("   mOpenHelper=openHelper;\n  ");
 
 	}
 
-	public void modifytable(String tableName, int type) {
+	public void modifytable(String tableName, int type, List<Entry<String, String>> columns) {
 
 		
 
@@ -439,18 +448,83 @@ implSb.append("   mOpenHelper=openHelper;\n  ");
 		// 编辑
 		if (type == 1) {
 			implSb.append("       public boolean update(" + NamingUtil.getClassName(tableName) + " entity){\n ");
-			implSb.append("        lock.lock();\n ");
-			 
-			implSb.append("        SQLiteDatabase db=mOpenHelper.getWritableDatabase();\n");
-			implSb.append("         try{\n ");
-			//implSb.append("         entity.upgradeFlag=getUpgrade(db);\n ");
-			implSb.append("         return update0(db, entity, cOLUMNS." + pk
-					+ "+\"=?\", new String[]{String.valueOf(entity." + pk + ")} );\n ");
-			implSb.append("        }catch (Exception e) { e.printStackTrace();\n} finally {\n ");
-			implSb.append("        lock.unlock();\n ");
-			implSb.append("        }\n ");
-			implSb.append("                     return false;\n ");
-			implSb.append("        }\n ");
+			implSb.append("              if ( entity == null) {\n");
+			implSb.append("                  return false;\n");
+			implSb.append("              }\n");
+			implSb.append("        rwl.writeLock().lock();\n");
+			implSb.append("                       SQLiteDatabase db = mOpenHelper.getWritableDatabase();\n");
+			implSb.append("                      try {\n");
+
+			implSb.append("   	            String sql =\"update " +tableName+" set ");
+
+			for (int i = 0; i < columns.size(); i++) {
+				Entry<String, String> entry = columns.get(i);
+				String columnName = NamingUtil.getInstanceName(entry.getKey());
+				if(i==columns.size()-1){
+					implSb.append(columnName +  "=? where id=?\";\n");
+				}
+				else{
+					implSb.append(columnName +  "=?,");
+				}
+			}
+			implSb.append("   	            SQLiteStatement stat = db.compileStatement(sql);\n");
+			implSb.append("   	            db.beginTransaction();\n");
+
+			for (int i = 0; i < columns.size(); i++) {
+				Entry<String, String> entry = columns.get(i);
+				String columnName = NamingUtil.getInstanceName(entry.getKey());
+				if (entry.getValue().contains("Int")||entry.getValue().startsWith("Long")) {
+
+					implSb.append("  if(null==entity."+ columnName + ") ");
+					if(columnName.toLowerCase().equals("lifestatus")){
+						implSb.append("   stat.bindLong("+(i+1)+",1);else\n");
+					}else if(columnName.toLowerCase().equals("upgradeflag")){
+						implSb.append("   stat.bindLong("+(i+1)+",1);else\n");
+					}else{
+						implSb.append("   stat.bindNull("+(i+1)+"); else\n");
+					}
+
+					implSb.append("   stat.bindLong(" +(i+1)+",entity."+ columnName + ");\n");
+				} else if (entry.getValue().startsWith("String")) {
+					implSb.append("  if(null==entity."+ columnName + "||entity."+ columnName +".length()==0) ");
+					implSb.append("   stat.bindNull("+(i+1)+");else\n");
+					implSb.append("   stat.bindString(" +(i+1)+",entity."+ columnName + ");\n");
+				}
+				else if (entry.getValue().toLowerCase().startsWith("float")||entry.getValue().toLowerCase().startsWith("double")) {
+					implSb.append("   stat.bindDouble(" +(i+1)+",entity."+ columnName + ");\n");
+				}
+				else if (entry.getValue().contains("Date")) {
+//					implSb.append("  if(null==entity."+ columnName + ") ");
+//					implSb.append("   stat.bindNull("+(i+1)+"); else\n");
+					implSb.append("   stat.bindString(" +(i+1)+",dfu.format(new Date()));\n");
+				}
+				if(i==columns.size()-1){
+					implSb.append("   stat.bindLong(" +(i+2)+",entity.id);\n");
+				}
+
+			}
+
+			implSb.append("  		              long result = stat.executeUpdateDelete();\n");
+			implSb.append("  		                if (result < 0) {\n");
+			implSb.append("  		                    return false;\n");
+			implSb.append("  		                }\n");
+			implSb.append("  		            db.setTransactionSuccessful();\n");
+			implSb.append("  		        } catch (Exception e) {\n");
+			implSb.append("  		            e.printStackTrace();\n");
+			implSb.append("             return false;\n");
+			implSb.append("         } finally {\n");
+		//	implSb.append("        lock.unlock();\n ");
+			implSb.append("             try {\n");
+			implSb.append("                     if (null != db) {\n");
+			implSb.append("                         db.endTransaction();\n");
+			implSb.append("                     }\n");
+			implSb.append("                 } catch (Exception e) {\n");
+			implSb.append("                     e.printStackTrace();\n");
+			implSb.append("     	            }\n");
+			implSb.append("     	            }\n");
+			implSb.append("               rwl.writeLock().unlock();\n");
+			implSb.append("             return true;\n");
+			implSb.append("         }\n");
 
 		}
 		// 删除
