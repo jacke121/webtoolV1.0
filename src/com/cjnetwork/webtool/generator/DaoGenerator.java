@@ -145,7 +145,7 @@ public class DaoGenerator implements Generator {
 		implSb.append("		@SuppressWarnings(\"unchecked\")\n");
 		implSb.append("		public List<" + NamingUtil.getClassName(tableName)
 				+ "> listAll() {\n");
-		implSb.append("			return this.getHibernateTemplate().find(\"from "
+		implSb.append("			return (List<"+NamingUtil.getClassName(tableName)+">)this.getHibernateTemplate().find(\"from "
 				+ NamingUtil.getClassName(tableName) + "\");\n");
 		implSb.append("		}\n");
 		//批量更新
@@ -185,7 +185,7 @@ public class DaoGenerator implements Generator {
 	public void AddqueryByPara(String tableName) {
 		// sb.append("		@Override\n");
 		implSb.append("		public List<"+NamingUtil.getClassName(tableName)+"> sqlQuery(final String sql) throws Exception {\n");
-		implSb.append("		List<"+NamingUtil.getClassName(tableName)+"> list = getHibernateTemplate().executeFind(new HibernateCallback<Object>() {\n");
+		implSb.append("		List<"+NamingUtil.getClassName(tableName)+"> list =(List<"+NamingUtil.getClassName(tableName)+">)getHibernateTemplate().executeFind(new HibernateCallback<Object>() {\n");
 		implSb.append("		public Object doInHibernate(Session session) throws HibernateException, SQLException {\n");
 		implSb.append("		Query query = session.createSQLQuery(sql).addEntity(\""+NamingUtil.getInstanceName(tableName)+"\","+ NamingUtil.getClassName(tableName) + ".class);\n");
 		implSb.append("		return query.list();\n");

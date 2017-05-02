@@ -17,11 +17,11 @@ import java.util.Map.Entry;
 
 public class TestDbMetaData {
 
-	@SuppressWarnings("unchecked")
+
 	public static void main(String[] args) throws Exception {
-		String dburl = "jdbc:mysql://127.0.0.1:3306/fhadmin";
+		String dburl = "jdbc:mysql://127.0.0.1:3306/salesmanagement";
 		String dbuser = "root";
-		String dbpwd = "root";
+		String dbpwd = "sys123";
 		Class.forName("com.mysql.jdbc.Driver");
 		List<String> tableName = new ArrayList<String>();
 		Map<String, List<Entry<String, String>>> tables = new HashMap<String, List<Entry<String, String>>>();

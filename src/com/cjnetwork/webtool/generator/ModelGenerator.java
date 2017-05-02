@@ -171,7 +171,7 @@ public class ModelGenerator implements Generator {
 		
 			//------
 			st.executeUpdate("DROP TABLE IF EXISTS " + tmpTableName  );
-			returnedTableName=returnedTableName.replace("PRIMARY KEY", "createtime TIMESTAMP(14),\n updatetime TIMESTAMP(14) ON UPDATE CURRENT_TIMESTAMP,\n LifeStatus INTEGER NOT NULL,\n upgradeFlag BIGINT NOT NULL, \n PRIMARY KEY");
+			returnedTableName=returnedTableName.replace("PRIMARY KEY", "createtime TIMESTAMP,\n updatetime TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,\n LifeStatus INTEGER NOT NULL,\n upgradeFlag BIGINT NOT NULL, \n PRIMARY KEY");
 			st.executeUpdate(returnedTableName);
 			}
 			
@@ -387,7 +387,7 @@ public class ModelGenerator implements Generator {
 			num = rs.getInt("table_count");
 		}
 		free(null, ps, conn);
-		return num > 0 ? true : false;
+		return num > 0;
 	}
 
 	/**

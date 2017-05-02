@@ -17,8 +17,10 @@ public class PropertyUtil {
 		try {
 //			System.out.println(System.getProperty("user.dir"));
 //			System.out.println(new File(".").getAbsolutePath());
-			System.out.println(Class.class.getClass().getResource("/").getPath());//这个加了个bin目录
-			properties.load(new FileInputStream(Class.class.getClass().getResource("/").getPath()+"conf" + File.separator + propertiesFileName));
+		String configPath=Class.class.getClass().getResource("/").getPath();//这个加了个bin目录
+			configPath = java.net.URLDecoder.decode(configPath,"utf-8");
+			System.out.println(configPath);
+			properties.load(new FileInputStream(configPath+"conf" + File.separator + propertiesFileName));
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
