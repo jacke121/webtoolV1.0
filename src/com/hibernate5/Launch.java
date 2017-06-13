@@ -1,18 +1,10 @@
-package com.mysql;
+package com.hibernate5;
+
+import com.hibernate5.*;
+import com.cjnetwork.webtool.util.ConfigUtil;
 
 import java.util.ArrayList;
 import java.util.List;
-
-import com.cjnetwork.webtool.generator.ActionGenerator;
-import com.cjnetwork.webtool.generator.ConfigFileGenerator;
-import com.cjnetwork.webtool.generator.DaoGenerator;
-import com.cjnetwork.webtool.generator.FileCopyGenerator;
-import com.cjnetwork.webtool.generator.Generator;
-import com.cjnetwork.webtool.generator.JarGenerator;
-import com.cjnetwork.webtool.generator.JspGenerator;
-import com.cjnetwork.webtool.generator.ModelGenerator;
-import com.cjnetwork.webtool.generator.ServiceGenerator;
-import com.cjnetwork.webtool.util.ConfigUtil;
 
 public class Launch {
 	
@@ -25,7 +17,7 @@ public class Launch {
 		List<Generator> generatorList = new ArrayList<Generator>();
 		generatorList.add(new JarGenerator());
 		generatorList.add(new ModelGenerator());
-		generatorList.add(new DaoGenerator());
+//		generatorList.add(new DaoGenerator());
 		generatorList.add(new ServiceGenerator());
 		generatorList.add(new ActionGenerator());
 		generatorList.add(new JspGenerator());

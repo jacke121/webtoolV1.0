@@ -135,7 +135,7 @@ public class ModelGenerator implements Generator {
 			for (int i = 0; i < sqls.size(); i++) {
 				String sql=sqls.get(i);
 				
-				 sql =sql.replace(");", ", [createtime] TimeStamp NOT NULL DEFAULT (datetime('now','localtime')), [updatetime] TimeStamp NOT NULL, [LifeStatus] INTEGER NOT NULL, [upgradeFlag] BIGINT NOT NULL);");
+				 sql =sql.replace(");", ", [createtime] TimeStamp NOT NULL DEFAULT (datetime('now','localtime')), [updatetime] TimeStamp NOT NULL, [LifeStatus] INTEGER NOT NULL  DEFAULT 1, [upgradeFlag] BIGINT NOT NULL  DEFAULT 0);");
 				 
 				int value= stat.executeUpdate("drop table if exists "+sqlstable.get(i));
 				if(value==-1){

@@ -1,29 +1,17 @@
-package com.cjnetwork.webtool.generator;
+package com.hibernate5;
+
+import com.cjnetwork.webtool.common.Globel;
+import com.cjnetwork.webtool.util.NamingUtil;
+import com.cjnetwork.webtool.util.PropertyUtil;
 
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.lang.reflect.Method;
-import java.sql.Connection;
-import java.sql.DatabaseMetaData;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.sql.Types;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
+import java.sql.*;
 import java.util.AbstractMap.SimpleEntry;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-
-import com.cjnetwork.webtool.common.Globel;
-import com.cjnetwork.webtool.util.NamingUtil;
-import com.cjnetwork.webtool.util.PropertyUtil;
 
 public class ModelGenerator implements Generator {
 
@@ -83,6 +71,11 @@ public class ModelGenerator implements Generator {
 		// generate get/set
 		for (int i = 0; i < colums.size(); i++) {
 			Entry<String, String> entry = colums.get(i);
+
+			if(null==Globel.tableKey.get(tableName)||null==tableName|| null==entry||null==entry.getKey()){
+				System.err.println("table error:"+tableName);
+				continue;
+			}
 			if (Globel.tableKey.get(tableName).equalsIgnoreCase(NamingUtil.getClassName(entry.getKey()))) {
 				sb.append("		@Id\n");
 				sb.append("		@GeneratedValue\n");
